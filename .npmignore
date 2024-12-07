@@ -1,0 +1,11 @@
+/src
+/node_modules
+
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+tsconfig.json
+tsup.config.ts
