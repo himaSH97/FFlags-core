@@ -1,5 +1,5 @@
 {
-  "name": "@fflags/core",
+  "name": "flex-flags",
   "version": "1.0.0",
   "main": "./dist/index.js",
   "module": "./dist/index.mjs",
@@ -7,12 +7,21 @@
   "scripts": {
     "build": "tsup"
   },
+  "repository": {
+    "url": "https://github.com/himaSH97/FFlags-core.git"
+  },
   "keywords": [],
   "author": "Himash",
   "license": "ISC",
   "description": "just beta",
   "devDependencies": {
+    "@types/node": "^22.10.1",
+    "@types/node-forge": "^1.3.11",
     "tsup": "^8.3.5",
     "typescript": "^5.7.2"
+  },
+  "dependencies": {
+    "dotenv": "^16.4.7",
+    "node-forge": "^1.3.1"
   }
 }
