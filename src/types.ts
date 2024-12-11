@@ -16,6 +16,9 @@ export type FlagStatusResponse = {
   flagKey: string;
   flagName: string;
   flagValue: boolean;
+  metadata: {
+    [key: string]: any;
+  };
 };
 
 export type FlagStatusRequestPayload = {

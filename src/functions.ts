@@ -1,17 +1,13 @@
 import * as forge from "node-forge";
-import {
-  FlagStatusResponse,
-  FlagOptions,
-  FlagStatusRequestPayload,
-  FlagDetailResponse,
-} from "./types";
+import { FlagStatusResponse, FlagOptions, FlagStatusRequestPayload, FlagDetailResponse } from "./types";
 import "dotenv/config";
 
 export class FFlagClient {
   private secretKey: string;
   private publicKey: string;
   private projectKey: string;
-  private BACKEND_URL = "http://localhost:4000";
+  // private BACKEND_URL = "http://localhost:4000";
+  private BACKEND_URL = "https://fflagsbackend-x94aak4f.b4a.run";
 
   constructor(secretKey: string, publicKey: string, projectKey: string) {
     if (!secretKey) {
@@ -37,17 +33,11 @@ export class FFlagClient {
     const secretKey = forge.pki.privateKeyFromPem(secretKeyPem);
 
     const content = JSON.stringify(data);
-    const encryptedContent = publicKey.encrypt(
-      forge.util.encodeUtf8(content),
-      "RSA-OAEP",
-      {
-        md: forge.md.sha256.create(),
-      }
-    );
+    const encryptedContent = publicKey.encrypt(forge.util.encodeUtf8(content), "RSA-OAEP", {
+      md: forge.md.sha256.create(),
+    });
 
-    const signature = secretKey.sign(
-      forge.md.sha256.create().update(encryptedContent, "utf8")
-    );
+    const signature = secretKey.sign(forge.md.sha256.create().update(encryptedContent, "utf8"));
 
     return {
       ec: forge.util.encode64(encryptedContent),
@@ -55,25 +45,22 @@ export class FFlagClient {
     };
   }
 
-  public async getFlag(
-    flagName: string,
-    options: FlagOptions = {}
-  ): Promise<any> {
-    if (!flagName) {
+  public async getFlag(flagNames: string[], options: FlagOptions = {}): Promise<any> {
+    if (!flagNames || flagNames.length === 0) {
       throw new Error("Flag name is required");
     }
 
     const data = {
       userId: options.userId,
       userRole: options.userRole,
-      flagName,
+      flagKeys: flagNames,
       projectKey: this.projectKey,
     };
 
     const encrypted = this.encryptdata(data);
 
     const flagInfo = await this.fetchFlagInfo(encrypted);
-    const formatedResponse = this.formatResponse(flagInfo[0]);
+    const formatedResponse = this.formatResponses(flagInfo);
 
     return formatedResponse;
   }
@@ -83,29 +70,46 @@ export class FFlagClient {
       flagName: data.flagName,
       flagKey: data.flagKey,
       flagValue: data.flagValues[0].value,
+      metadata: {
+        role: data.flagValues[0].roleName,
+      },
     };
   }
 
-  private async fetchFlagInfo(data: FlagStatusRequestPayload) {
-    const res = await fetch(`${this.BACKEND_URL}/api/client/flag-info`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "x-fflags-project-key": this.projectKey,
-      },
-      body: JSON.stringify(data),
-    });
+  private formatResponses(dataArray: FlagDetailResponse[]): { [key: string]: FlagStatusResponse } {
+    return dataArray.reduce((acc, data) => {
+      const formattedResponse = this.formatResponse(data);
+      acc[formattedResponse.flagKey] = formattedResponse;
+      return acc;
+    }, {} as { [key: string]: FlagStatusResponse });
+  }
 
-    return await res.json();
+  private async fetchFlagInfo(data: FlagStatusRequestPayload) {
+    try {
+      const res = await fetch(`${this.BACKEND_URL}/api/client/flag-info`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-fflags-project-key": this.projectKey,
+        },
+        body: JSON.stringify(data),
+      });
+      const resData = await res.json();
+
+      if (!res.ok) {
+        throw new Error(resData.message);
+      }
+
+      return resData;
+    } catch (error) {
+      throw error;
+    }
   }
 }
 
-async function main() {
-  const fflagClient = new FFlagClient(
-    process.env.SECRET_KEY as string,
-    process.env.PUBLIC_KEY as string,
-    process.env.PROJECT_KEY as string
-  );
-  const test: any = await fflagClient.getFlag("FIRST", {});
-}
-main();
+// async function main() {
+//   const fflagClient = new FFlagClient(process.env.SECRET_KEY as string, process.env.PUBLIC_KEY as string, process.env.PROJECT_KEY as string);
+//   const test: any = await fflagClient.getFlag(["BETA_BANNER"], {});
+//   console.log("🚀 ~ main ~ test:", test);
+// }
+// main();
