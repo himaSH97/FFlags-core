@@ -1,5 +1,11 @@
 import * as forge from "node-forge";
-import { FlagStatusResponse, FlagOptions, FlagStatusRequestPayload, FlagDetailResponse } from "./types";
+import {
+  FlagStatusResponse,
+  FlagOptions,
+  FlagStatusRequestPayload,
+  FlagDetailResponse,
+  FlexFlagConfig,
+} from "./types";
 import "dotenv/config";
 
 export class FFlagClient {
@@ -9,19 +15,19 @@ export class FFlagClient {
   // private BACKEND_URL = "http://localhost:4000";
   private BACKEND_URL = "https://fflagsbackend-x94aak4f.b4a.run";
 
-  constructor(secretKey: string, publicKey: string, projectKey: string) {
-    if (!secretKey) {
+  constructor(config: FlexFlagConfig) {
+    if (!config.secretKey) {
       throw new Error("Secret key should not be empty");
     }
-    if (!publicKey) {
+    if (!config.publicKey) {
       throw new Error("Public key should not be empty");
     }
-    if (!projectKey) {
+    if (!config.projectKey) {
       throw new Error("Project key should not be empty");
     }
-    this.secretKey = secretKey;
-    this.publicKey = publicKey;
-    this.projectKey = projectKey;
+    this.secretKey = config.secretKey;
+    this.publicKey = config.publicKey;
+    this.projectKey = config.projectKey;
   }
 
   private encryptdata(data: any): any {
@@ -33,11 +39,17 @@ export class FFlagClient {
     const secretKey = forge.pki.privateKeyFromPem(secretKeyPem);
 
     const content = JSON.stringify(data);
-    const encryptedContent = publicKey.encrypt(forge.util.encodeUtf8(content), "RSA-OAEP", {
-      md: forge.md.sha256.create(),
-    });
+    const encryptedContent = publicKey.encrypt(
+      forge.util.encodeUtf8(content),
+      "RSA-OAEP",
+      {
+        md: forge.md.sha256.create(),
+      }
+    );
 
-    const signature = secretKey.sign(forge.md.sha256.create().update(encryptedContent, "utf8"));
+    const signature = secretKey.sign(
+      forge.md.sha256.create().update(encryptedContent, "utf8")
+    );
 
     return {
       ec: forge.util.encode64(encryptedContent),
@@ -45,7 +57,10 @@ export class FFlagClient {
     };
   }
 
-  public async getFlag(flagNames: string[], options: FlagOptions = {}): Promise<any> {
+  public async getFlag(
+    flagNames: string[],
+    options: FlagOptions = {}
+  ): Promise<any> {
     if (!flagNames || flagNames.length === 0) {
       throw new Error("Flag name is required");
     }
@@ -76,7 +91,9 @@ export class FFlagClient {
     };
   }
 
-  private formatResponses(dataArray: FlagDetailResponse[]): { [key: string]: FlagStatusResponse } {
+  private formatResponses(dataArray: FlagDetailResponse[]): {
+    [key: string]: FlagStatusResponse;
+  } {
     return dataArray.reduce((acc, data) => {
       const formattedResponse = this.formatResponse(data);
       acc[formattedResponse.flagKey] = formattedResponse;

@@ -30,3 +30,9 @@ export type FlagOptions = {
   userId?: string;
   userRole?: string;
 };
+
+export type FlexFlagConfig = {
+  secretKey: string;
+  publicKey: string;
+  projectKey: string;
+};
